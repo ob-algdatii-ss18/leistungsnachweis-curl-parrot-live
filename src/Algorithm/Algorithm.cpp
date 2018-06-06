@@ -15,11 +15,11 @@
 #endif
 
 bool Algorithm::isCarDataValid(Types::CarData carData, unsigned T) {
-	bool result = true;
+	bool result = false;
 
 	for (int i = 0; i < carData.t.getSize(); i++) {
-		if (carData.t(i) > T) {
-			result = false;
+		if (carData.t(i) < T) {
+			result = true;
 			break;
 		}
 	}
