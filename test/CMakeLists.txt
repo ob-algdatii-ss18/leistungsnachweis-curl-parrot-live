@@ -13,16 +13,11 @@ target_include_directories(SearchGraphNodeTest PRIVATE DataHandlers)
 target_link_libraries(SearchGraphNodeTest PRIVATE gtest gmock SearchGraphNode)
 add_test(NAME SearchGraphNodeTest COMMAND SearchGraphNodeTest)
 
-add_executable(GeneratorTest Algorithm/GeneratorTest.cpp)
-target_include_directories(GeneratorTest PRIVATE Algorithm)
-target_link_libraries(GeneratorTest PRIVATE gtest gmock Generator)
-#TODO Test Generator
-#add_test(NAME GeneratorTest COMMAND GeneratorTest)
-
 add_executable(RLAPSolverTest Algorithm/RLAP/RLAPSolverTest.cpp)
 target_include_directories(RLAPSolverTest
     PRIVATE
-        Algorithm/RLAP ${PROJECT_SOURCE_DIR}/src/Algorithm/RLAP
+        Algorithm/RLAP
+        ${PROJECT_SOURCE_DIR}/src/Algorithm/RLAP
         ${PROJECT_SOURCE_DIR}/src/Numeric
 )
 target_link_libraries(RLAPSolverTest PRIVATE gtest gmock RLAPSolverHungarian RLAPSolverJV)

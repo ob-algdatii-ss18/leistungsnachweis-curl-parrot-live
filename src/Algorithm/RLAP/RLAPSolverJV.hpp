@@ -21,51 +21,52 @@
 class RLAPSolverJV : public RLAPSolver {
 public:
 
-	/**
-	* Constructor for RLAPSolverJV.
-	* \param [in] mat 2D-Matrix of cars and rides with earned points
-	*/
-	RLAPSolverJV(const Tensor<int>& mat);
+    /**
+    * Constructor for RLAPSolverJV.
+    * \param [in] mat 2D-Matrix of cars and rides with earned points
+    */
+    RLAPSolverJV(const Tensor<int>& mat);
 
-	void solve(Tensor<unsigned>& assignments) override;
+    void solve(Tensor<unsigned>& assignments) override;
 
 private:
 
-	/** Amount of matrix rows. */
-	const unsigned rows;
+    /** Amount of matrix rows. */
+    const unsigned rows;
 
-	/** Amount of matrix columns. */
-	const unsigned cols;
+    /** Amount of matrix columns. */
+    const unsigned cols;
 
-	/** Dimension of the RLAP. */
-	const unsigned size;
+    /** Dimension of the RLAP. */
+    const unsigned size;
 
-	/** Cost matrix with inverted values and dummy rows and columns. */
-	std::vector<std::vector<double>> costMat;
+    /** Cost matrix with inverted values and dummy rows and columns. */
+    std::vector<std::vector<double>> costMat;
 
-	/** Column assigned to row in solution. */
-	std::vector<int> rowsol;
+    /** Column assigned to row in solution. */
+    std::vector<int> rowsol;
 
-	/** Row assigned to column in solution. */
-	std::vector<int> colsol;
+    /** Row assigned to column in solution. */
+    std::vector<int> colsol;
 
-	/**
-	 * JV shortest augmenting path algorithm to solve the assignment problem.
-	 * \param [in] dim			problem size
-	 * \param [in] assigncost	cost matrix
-	 * \param [in] rowsol		column assigned to row in solution
-	 * \param [in] colsol		row assigned to column in solution
-	 * \param [in] u			dual variables, row reduction numbers
-	 * \param [in] v			dual variables, column reduction numbers
-	 */
-	void jvlap(int dim, const std::vector<std::vector<double>>&assigncost, std::vector<int>&rowsol,
-		std::vector<int>&colsol, std::vector<double>&u, std::vector<double>&v);
+    /**
+     * JV shortest augmenting path algorithm to solve the assignment problem.
+     * \param [in] dim			problem size
+     * \param [in] assigncost	cost matrix
+     * \param [in] rowsol		column assigned to row in solution
+     * \param [in] colsol		row assigned to column in solution
+     * \param [in] u			dual variables, row reduction numbers
+     * \param [in] v			dual variables, column reduction numbers
+     */
+    void jvlap(int dim, const std::vector<std::vector<double>>& assigncost,
+               std::vector<int>& rowsol,
+               std::vector<int>& colsol, std::vector<double>& u, std::vector<double>& v);
 
-	/**
-	* Fill assignments with the found RLAP solution using rowsol and colsol.
-	* \param [in] assignments	Tensor for the RLAP solution (must have the correct size)
-	*/
-	void assignMatching(Tensor<unsigned>& assignments);
+    /**
+    * Fill assignments with the found RLAP solution using rowsol and colsol.
+    * \param [in] assignments	Tensor for the RLAP solution (must have the correct size)
+    */
+    void assignMatching(Tensor<unsigned>& assignments);
 };
 
 #endif // RLAP_SOLVER_JV_H

@@ -1,11 +1,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <memory>
-#include <vector>
-#include <initializer_list>
 #include "Tensor.hpp"
-#include "SearchGraphNode.hpp"
 
 namespace Types {
 
@@ -46,28 +42,6 @@ struct CarData {
     Tensor<int> p;
 };
 
-/**
- * Represenation of one node in the search tree, containing information about each car
- * and not yet assigned rides as well as a score for this choice.
- */
-struct Choice {
-    /**
-     * Creates a new Choice instance by copying a given CarData object
-     * and initializing everything else with default values.
-     *
-     * \param [in] other CarData object to copy
-     */
-    Choice(CarData& other): cars(other), score(0) {};
-
-    /** Resulting CarData for this choice. */
-    CarData cars;
-    /** Unassigned rides for subsequent choices. */
-    std::vector<int> unassigned;
-    /** Score of this choice. */
-    float score;
-    /** SearchGraphNode that represents this choice. */
-    std::shared_ptr<SearchGraphNode> searchGraphNode;
-};
 }
 
 #endif // TYPES_H

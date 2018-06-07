@@ -3,8 +3,8 @@
 ##################################################################
 add_library(SearchGraphNode DataHandlers/SearchGraphNode.cpp)
 target_include_directories(SearchGraphNode
-	PUBLIC
-		${CMAKE_CURRENT_SOURCE_DIR}/DataHandlers
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/DataHandlers
         ${CMAKE_CURRENT_SOURCE_DIR}/Numeric
 )
 
@@ -13,8 +13,8 @@ target_include_directories(SearchGraphNode
 ##################################################################
 add_library(InputData DataHandlers/InputData.cpp)
 target_include_directories(InputData
-	PUBLIC
-		${CMAKE_CURRENT_SOURCE_DIR}/DataHandlers
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/DataHandlers
         ${CMAKE_CURRENT_SOURCE_DIR}/Numeric
 )
 
@@ -23,14 +23,14 @@ target_include_directories(InputData
 ##################################################################
 add_library(Generator Algorithm/Generator.cpp)
 target_include_directories(Generator
-	PUBLIC
-		${CMAKE_CURRENT_SOURCE_DIR}/Algorithm
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/Algorithm
         ${CMAKE_CURRENT_SOURCE_DIR}/Numeric
 )
 target_link_libraries(Generator
-	PUBLIC
-		InputData
-		SearchGraphNode
+    PUBLIC
+        InputData
+        SearchGraphNode
     PRIVATE
         RLAPSolverHungarian
         RLAPSolverJV
@@ -41,8 +41,8 @@ target_link_libraries(Generator
 ##################################################################
 add_library(RLAPSolverHungarian Algorithm/RLAP/RLAPSolverHungarian.cpp)
 target_include_directories(RLAPSolverHungarian
-	PUBLIC
-		${CMAKE_CURRENT_SOURCE_DIR}/Algorithm/RLAP
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/Algorithm/RLAP
         ${CMAKE_CURRENT_SOURCE_DIR}/Numeric
 )
 
@@ -51,8 +51,8 @@ target_include_directories(RLAPSolverHungarian
 ##################################################################
 add_library(RLAPSolverJV Algorithm/RLAP/RLAPSolverJV.cpp)
 target_include_directories(RLAPSolverJV
-	PUBLIC
-		${CMAKE_CURRENT_SOURCE_DIR}/Algorithm/RLAP
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/Algorithm/RLAP
         ${CMAKE_CURRENT_SOURCE_DIR}/Numeric
 )
 
@@ -61,15 +61,16 @@ target_include_directories(RLAPSolverJV
 ##################################################################
 add_library(Algorithm Algorithm/Algorithm.cpp)
 target_include_directories(Algorithm
-	PUBLIC
-		${CMAKE_CURRENT_SOURCE_DIR}/Algorithm
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/Algorithm
         ${CMAKE_CURRENT_SOURCE_DIR}/Numeric
 )
 target_link_libraries(Algorithm
-	PUBLIC
-		SearchGraphNode
-		InputData
-		Generator
+    PUBLIC
+        InputData
+    PRIVATE
+        SearchGraphNode
+        Generator
 )
 
 ##################################################################

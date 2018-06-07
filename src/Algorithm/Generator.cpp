@@ -6,13 +6,14 @@
 #include "RLAPSolverHungarian.hpp"
 #include "RLAPSolverJV.hpp"
 
-int Generator::createSearchSpace(Tensor<int>& finishTimes, Tensor<int>& finishPoints,
-                                  std::vector<int>& unassigned, std::unique_ptr<Types::CarData>& cars)
-{
-    int maxValue = 0;
-
+void Generator::createSearchSpace(Tensor<int>& finishTimes,
+                                  Tensor<int>& finishPoints,
+                                  Tensor<int>& scores,
+                                  std::vector<int>& unassigned,
+                                  Types::CarData& cars) {
     // For each unassigned ride, calculate times and points for all cars
     auto ride = unassigned.begin();
+
     for(unsigned uIndex = 0; uIndex < unassigned.size(); ++uIndex, ++ride) {
         // distance of current ride
         int rideDistance = inputData.distances(*ride);
@@ -24,15 +25,15 @@ int Generator::createSearchSpace(Tensor<int>& finishTimes, Tensor<int>& finishPo
         for(unsigned car = 0; car < inputData.fleetSize; ++car) {
 
             // current time of the car
-            int carTime = cars->t(car);
+            int carTime = cars.t(car);
             // distance to ride starting point
-            int ariveDistance = std::abs(cars->x(car) - inputData.startX(*ride)) +
-                                std::abs(cars->y(car) - inputData.startY(*ride));
+            int ariveDistance = std::abs(cars.x(car) - inputData.startX(*ride)) +
+                                std::abs(cars.y(car) - inputData.startY(*ride));
             // point in time when the ride can start (car arrived)
             int startTime = std::max(carTime + ariveDistance, earliestStart);
 
             finishTimes(car, uIndex) = startTime + rideDistance;
-            finishPoints(car, uIndex) = cars->p(car);
+            finishPoints(car, uIndex) = cars.p(car);
 
             // ride ended in time (points gained)
             if(latestFinish >= finishTimes(car, uIndex)) {
@@ -44,75 +45,66 @@ int Generator::createSearchSpace(Tensor<int>& finishTimes, Tensor<int>& finishPo
                 finishPoints(car, uIndex) += inputData.bonus;
             }
 
-            if(maxValue < finishPoints(car, uIndex)){
-                maxValue = finishPoints(car, uIndex);
-            }
+            scores(car, uIndex) = std::max(static_cast<int>(inputData.maxTime) - finishTimes(car,
+                                           uIndex), 0) + finishPoints(car, uIndex);
         }
     }
-
-    return maxValue;
 }
 
-std::unique_ptr<Types::Choice> Generator::selectFromSearchSpace(std::shared_ptr<SearchGraphNode>& prevNode, Tensor<int>& finishTimes,
-                                      Tensor<int>& finishPoints, std::vector<int>& unassigned,
-                                      int maxValue, std::unique_ptr<Types::CarData>& cars)
-{
+std::shared_ptr<SearchGraphNode> Generator::selectFromSearchSpace(Types::CarData& cars,
+        std::vector<int>& unassigned,
+        std::shared_ptr<SearchGraphNode>& prevNode,
+        Tensor<int>& finishTimes,
+        Tensor<int>& finishPoints,
+        Tensor<int>& scores) {
     // no possible choices left
-    const unsigned nAssignments = std::min(inputData.fleetSize, static_cast<unsigned>(unassigned.size()));
-	if (nAssignments == 0) { return {}; }
+    const unsigned nAssignments = std::min(inputData.fleetSize,
+                                           static_cast<unsigned>(unassigned.size()));
+
+    if(nAssignments == 0) { return {}; }
 
     // solve RLAP to maximize gained points
-    //RLAPSolverHungarian solver(finishPoints, maxValue);
-	RLAPSolverJV solver(finishPoints);
+    //RLAPSolverHungarian solver(scores, maxScore);
+    RLAPSolverJV solver(scores);
     std::unique_ptr<Tensor<unsigned>> searchNodeValue(new Tensor<unsigned>({ nAssignments, 2 }));
     solver.solve(*searchNodeValue);
 
-    // init data structure for result
-    std::unique_ptr<Types::Choice> choice(new Types::Choice(*cars));
+    // more efficient structure to remove entries from
     std::set<int> newUnassigned(unassigned.begin(), unassigned.end());
-
     float timeSum = 0;
     float pointSum = 0;
-    for(unsigned i = 0; i < nAssignments; ++i){
+
+    // update cars
+    for(unsigned i = 0; i < nAssignments; ++i) {
         const int car = (*searchNodeValue)(i, 0);
         const int uIndex = (*searchNodeValue)(i, 1);
         const int ride = unassigned[uIndex];
         newUnassigned.erase(ride);
 
-        choice->cars.x(car) = inputData.endX(ride);
-        choice->cars.y(car) = inputData.endY(ride);
-        choice->cars.t(car) = finishTimes(car, uIndex);
-        choice->cars.p(car) = finishPoints(car, uIndex);
+        cars.x(car) = inputData.endX(ride);
+        cars.y(car) = inputData.endY(ride);
+        cars.t(car) = finishTimes(car, uIndex);
+        cars.p(car) = finishPoints(car, uIndex);
 
         (*searchNodeValue)(i, 1) = ride;
-
-        timeSum += choice->cars.t(car);
-        pointSum += choice->cars.p(car);
     }
 
-    // write back results
-    float timeAvg = timeSum / nAssignments;
-
-    if(timeAvg > inputData.maxTime) {
-        timeAvg = inputData.maxTime;
-    }
-
-    choice->score = inputData.maxTime - timeAvg + pointSum / nAssignments;
-    choice->unassigned.insert(choice->unassigned.begin(), newUnassigned.begin(),
-                              newUnassigned.end());
-    choice->searchGraphNode = std::shared_ptr<SearchGraphNode>(new SearchGraphNode(prevNode,
-                              searchNodeValue));
-	return choice;
+    // update unassigned vector (without rides that have been assigned)
+    unassigned.assign(newUnassigned.begin(), newUnassigned.end());
+    return std::make_shared<SearchGraphNode>(prevNode, searchNodeValue);
 }
 
-std::unique_ptr<Types::Choice> Generator::generate(std::shared_ptr<SearchGraphNode>& prevNode, 
-											std::vector<int>& unassigned,
-											std::unique_ptr<Types::CarData> cars) {
-
+std::shared_ptr<SearchGraphNode> Generator::generate(std::vector<int>& unassigned,
+        Types::CarData& cars,
+        std::shared_ptr<SearchGraphNode>& prevNode) {
     // Time after each car was assigned to each unassigned ride (2D matrix)
     Tensor<int> finishTimes({ inputData.fleetSize, static_cast<unsigned>(unassigned.size()) });
     // Points after each car was assigned to each unassigned ride (2D matrix)
     Tensor<int> finishPoints({ inputData.fleetSize, static_cast<unsigned>(unassigned.size()) });
-    int maxValue = createSearchSpace(finishTimes, finishPoints, unassigned, cars);
-    return selectFromSearchSpace(prevNode, finishTimes, finishPoints, unassigned, maxValue, cars);
+    // Scores of each car beeing assigned to each ride
+    Tensor<int> scores({ inputData.fleetSize, static_cast<unsigned>(unassigned.size()) });
+
+    createSearchSpace(finishTimes, finishPoints, scores, unassigned, cars);
+    return selectFromSearchSpace(cars, unassigned, prevNode, finishTimes, finishPoints,
+                                 scores);
 };

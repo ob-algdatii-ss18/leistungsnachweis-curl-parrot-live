@@ -24,10 +24,9 @@ RLAPSolverHungarian::RLAPSolverHungarian(const Tensor<int>& mat, const int maxCo
     cols(mat.getDims()[1]),
     size(MAX_DIM(mat)),
     costMat({MAX_DIM(mat), MAX_DIM(mat)}),
-    rowMin({MAX_DIM(mat)}, maxCost),
-    colMin({MAX_DIM(mat)}, maxCost),
-    solved(false)
-{
+        rowMin({MAX_DIM(mat)}, maxCost),
+        colMin({MAX_DIM(mat)}, maxCost),
+solved(false) {
     // max cost changes when turning the minimize problem into a maximizing one
     int newMaxCost = 0;
 
@@ -77,8 +76,7 @@ RLAPSolverHungarian::RLAPSolverHungarian(const Tensor<int>& mat, const int maxCo
 }
 
 void RLAPSolverHungarian::reduceRowsAndCols(Tensor<unsigned>& zeroCountRows,
-    Tensor<unsigned>& zeroCountCols)
-{
+        Tensor<unsigned>& zeroCountCols) {
     // used for row reduction
     std::unordered_set<unsigned> nonZeroCols;
 
@@ -124,8 +122,7 @@ void RLAPSolverHungarian::reduceRowsAndCols(Tensor<unsigned>& zeroCountRows,
 }
 
 unsigned RLAPSolverHungarian::coverZeros(Tensor<unsigned>& zeroCountRows,
-    Tensor<unsigned>& zeroCountCols, Tensor<bool>& rowLines, Tensor<bool>& colLines)
-{
+        Tensor<unsigned>& zeroCountCols, Tensor<bool>& rowLines, Tensor<bool>& colLines) {
     // stores tracking markers for entries
     Tensor<bool> zeroCountRowsFlag({size}), zeroCountColsFlag({size});
     // value that marks entries to be tracked
@@ -220,7 +217,7 @@ unsigned RLAPSolverHungarian::coverZeros(Tensor<unsigned>& zeroCountRows,
                 ++lineCount;
                 rowLines(zeros[i].row) = true;
             }
-        }else{
+        } else {
             zeros[i].deleted = false;
         }
 
@@ -239,11 +236,12 @@ int RLAPSolverHungarian::recalculateCosts(const int minVal,
     // determine minimum entry (not covered by lines)
     // and initialize data structure
     if(newMinVal == 0) {
-        for(unsigned row = 0; row < size; ++row){
-            if(rowLines(row)){continue;}
-            for(unsigned col = 0; col < size; ++col){
-                if(colLines(col)){continue;}
-                else if(newMinVal > costMat(row, col) || newMinVal == 0){
+        for(unsigned row = 0; row < size; ++row) {
+            if(rowLines(row)) {continue;}
+
+            for(unsigned col = 0; col < size; ++col) {
+                if(colLines(col)) {continue;}
+                else if(newMinVal > costMat(row, col) || newMinVal == 0) {
                     newMinVal = costMat(row, col);
                 }
             }
@@ -253,6 +251,7 @@ int RLAPSolverHungarian::recalculateCosts(const int minVal,
     // add minimum entry to twice covered entries an subtract it from not covered ones
     // recalculate per row and per column zero counts and minimum entry
     resultMinVal = newMinVal;
+
     for(unsigned row = 0; row < size; ++row) {
         for(unsigned col = 0; col < size; ++col) {
             int& entry = costMat(row, col);
@@ -277,9 +276,8 @@ int RLAPSolverHungarian::recalculateCosts(const int minVal,
 }
 
 void RLAPSolverHungarian::assignMatching(Tensor<unsigned>& assignments,
-    Tensor<unsigned>& zeroCountRows, Tensor<unsigned>& zeroCountCols)
-{
-    for(const Zero& elm: zeros){
+        Tensor<unsigned>& zeroCountRows, Tensor<unsigned>& zeroCountCols) {
+    for(const Zero& elm : zeros) {
         ++zeroCountRows(elm.row);
         ++zeroCountCols(elm.col);
     }
@@ -287,36 +285,42 @@ void RLAPSolverHungarian::assignMatching(Tensor<unsigned>& assignments,
     const unsigned maxAssignments = std::min(rows, cols);
     unsigned assignmentsInd = 0;
     unsigned minZeros = 1, newMinZeros = 0;
-    while(assignmentsInd < maxAssignments){
-        for(Zero& elm: zeros){
-            if(elm.deleted){continue;}
+
+    while(assignmentsInd < maxAssignments) {
+        for(Zero& elm : zeros) {
+            if(elm.deleted) {continue;}
 
             unsigned currentMinZeros = std::min(zeroCountRows(elm.row), zeroCountCols(elm.col));
-            if(currentMinZeros <= minZeros){
-                if(elm.row < rows && elm.col < cols){
+
+            if(currentMinZeros <= minZeros) {
+                if(elm.row < rows && elm.col < cols) {
                     assignments(assignmentsInd, 0) = elm.row;
                     assignments(assignmentsInd, 1) = elm.col;
                     ++assignmentsInd;
                 }
-                elm.deleted = true;
-                for(Zero& compElm: zeros){
-                    if(compElm.deleted){continue;}
 
-                    if(elm.row == compElm.row || elm.col == compElm.col){
+                elm.deleted = true;
+
+                for(Zero& compElm : zeros) {
+                    if(compElm.deleted) {continue;}
+
+                    if(elm.row == compElm.row || elm.col == compElm.col) {
                         --zeroCountRows(compElm.row);
                         --zeroCountCols(compElm.col);
                         compElm.deleted = true;
 
                         currentMinZeros = std::min(zeroCountRows(elm.row), zeroCountCols(elm.col));
-                        if(newMinZeros == 0 || newMinZeros > currentMinZeros){
+
+                        if(newMinZeros == 0 || newMinZeros > currentMinZeros) {
                             newMinZeros = currentMinZeros;
                         }
                     }
                 }
-            }else if(newMinZeros == 0 || newMinZeros > currentMinZeros){
+            } else if(newMinZeros == 0 || newMinZeros > currentMinZeros) {
                 newMinZeros = currentMinZeros;
             }
         }
+
         minZeros = newMinZeros;
         newMinZeros = 0;
     }
@@ -333,7 +337,7 @@ void RLAPSolverHungarian::solve(Tensor<unsigned>& assignments) {
 
     int minVal = 0;
 
-    while(lineCount < size){
+    while(lineCount < size) {
         zeros.clear();
         minVal = recalculateCosts(minVal, zeroCountRows, zeroCountCols, rowLines, colLines);
         lineCount = coverZeros(zeroCountRows, zeroCountCols, rowLines, colLines);
